@@ -10,8 +10,11 @@ Y = tf.placeholder('float', [None,3])
 W = tf.Variable(tf.zeros([3,3]))
 
 hypothesis = tf.nn.softmax(tf.matmul(X,W))
-cost = tf.reduce_mean(-tf.reduce_sum(Y*tf.log(hypothesis), reduction_indices=1)) # cross entropy
-optimizer = tf.train.AdamOptimizer(0.001).minimize(cost)
+learning_rate = 0.1 # test for 10. and 0.001 (large and small)
+
+ # cross entropy
+cost = tf.reduce_mean(-tf.reduce_sum(Y*tf.log(hypothesis), reduction_indices=1))
+optimizer = tf.train.AdamOptimizer(learning_rate).minimize(cost)
 
 init = tf.initialize_all_variables()
 
