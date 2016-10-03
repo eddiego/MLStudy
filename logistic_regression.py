@@ -37,3 +37,10 @@ for step in xrange(2001):
 print sess.run(hypothesis, feed_dict={X:[[1],[11],[7]]}) > 0.5
 print sess.run(hypothesis, feed_dict={X:[[1],[1],[4]]}) > 0.5
 print sess.run(hypothesis, feed_dict={X:[[1],[5],[2]]}) > 0.5
+
+# accuracy
+correct_prediction = tf.equal(tf.floor(hypothesis+0.5), Y)
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, 'float'))
+print sess.run([hypothesis, tf.floor(hypothesis+0.5), correct_prediction, accuracy],
+                feed_dict={X:x_data, Y:y_data})
+print 'accuracy:', sess.run(accuracy, {X:x_data, Y:y_data})
