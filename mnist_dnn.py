@@ -25,12 +25,12 @@ w6 = tf.get_variable('weight6', shape=[256,256], initializer=tf.contrib.layers.x
 w7 = tf.get_variable('weight7', shape=[256,10], initializer=tf.contrib.layers.xavier_initializer())
 
 b1 = tf.Variable(tf.zeros([256]), name='bias1')
-b2 = tf.Variable(tf.zeros([256]), name='bias1')
-b3 = tf.Variable(tf.zeros([256]), name='bias1')
-b4 = tf.Variable(tf.zeros([256]), name='bias1')
-b5 = tf.Variable(tf.zeros([256]), name='bias1')
-b6 = tf.Variable(tf.zeros([256]), name='bias1')
-b7 = tf.Variable(tf.zeros([10]), name='bias1')
+b2 = tf.Variable(tf.zeros([256]), name='bias2')
+b3 = tf.Variable(tf.zeros([256]), name='bias3')
+b4 = tf.Variable(tf.zeros([256]), name='bias4')
+b5 = tf.Variable(tf.zeros([256]), name='bias5')
+b6 = tf.Variable(tf.zeros([256]), name='bias6')
+b7 = tf.Variable(tf.zeros([10]), name='bias7')
 
 # model
 dropout_rate = tf.placeholder('float')
