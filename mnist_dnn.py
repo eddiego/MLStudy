@@ -72,7 +72,7 @@ with tf.Session() as sess:
 
         # display
         if epoch % display_step == 0:
-            print 'Epoch:', '%04d' % (epoch+1), 'cost=', '{:.9f}'.format(avg_cost)
+            print 'Epoch:', '%03d' % (epoch+1), 'cost:', '{:.9f}'.format(avg_cost)
 
     print 'Optimization Finished'
 
@@ -91,4 +91,4 @@ with tf.Session() as sess:
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
     print ("Accuracy:", accuracy.eval({x: mnist.test.images, y: mnist.test.labels, dropout_rate:1}))
 
-    saver.save(sess, 'mnist_dnn.ckpt')
+    saver.save(sess, '/Users/eddie/Documents/ws/ml/ckpts/mnist_dnn.ckpt')
