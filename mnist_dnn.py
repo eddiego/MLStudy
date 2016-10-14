@@ -11,64 +11,90 @@ training_epochs = 15
 batch_size = 100
 display_step = 1
 
+# load MNIST data
+mnist = input_data.read_data_sets('MNIST_data/', one_hot=True)
+
 # in/out
-x = tf.placeholder('float', [None, 784])    # 28*28=784
-y = tf.placeholder('float', [None, 10])     # 10 classes
+with tf.name_scope('input'):
+    x = tf.placeholder('float', [None, 784])    # 28*28=784
+    y = tf.placeholder('float', [None, 10])     # 10 classes
 
 # weights
-w1 = tf.get_variable('weight1', shape=[784,256], initializer=tf.contrib.layers.xavier_initializer())
-w2 = tf.get_variable('weight2', shape=[256,256], initializer=tf.contrib.layers.xavier_initializer())
-w3 = tf.get_variable('weight3', shape=[256,256], initializer=tf.contrib.layers.xavier_initializer())
-w4 = tf.get_variable('weight4', shape=[256,256], initializer=tf.contrib.layers.xavier_initializer())
-w5 = tf.get_variable('weight5', shape=[256,256], initializer=tf.contrib.layers.xavier_initializer())
-w6 = tf.get_variable('weight6', shape=[256,256], initializer=tf.contrib.layers.xavier_initializer())
-w7 = tf.get_variable('weight7', shape=[256,10], initializer=tf.contrib.layers.xavier_initializer())
+with tf.name_scope('weight'):
+    w1 = tf.get_variable('weight1', shape=[784,256], initializer=tf.contrib.layers.xavier_initializer())
+    w2 = tf.get_variable('weight2', shape=[256,256], initializer=tf.contrib.layers.xavier_initializer())
+    w3 = tf.get_variable('weight3', shape=[256,10], initializer=tf.contrib.layers.xavier_initializer())
 
-b1 = tf.Variable(tf.zeros([256]), name='bias1')
-b2 = tf.Variable(tf.zeros([256]), name='bias2')
-b3 = tf.Variable(tf.zeros([256]), name='bias3')
-b4 = tf.Variable(tf.zeros([256]), name='bias4')
-b5 = tf.Variable(tf.zeros([256]), name='bias5')
-b6 = tf.Variable(tf.zeros([256]), name='bias6')
-b7 = tf.Variable(tf.zeros([10]), name='bias7')
+# bias
+with tf.name_scope('bias'):
+    b1 = tf.Variable(tf.zeros([256]), name='bias1')
+    b2 = tf.Variable(tf.zeros([256]), name='bias2')
+    b3 = tf.Variable(tf.zeros([10]), name='bias3')
 
 # model
-dropout_rate = tf.placeholder('float')
-L2 = tf.nn.dropout(tf.nn.relu(tf.matmul(x, w1) + b1), dropout_rate)
-L3 = tf.nn.relu(tf.matmul(L2, w2) + b2)
-L4 = tf.nn.dropout(tf.nn.relu(tf.matmul(L3, w3) + b3), dropout_rate)
-L5 = tf.nn.relu(tf.matmul(L4, w4) + b4)
-L6 = tf.nn.dropout(tf.nn.relu(tf.matmul(L5, w5) + b5), dropout_rate)
-L7 = tf.nn.relu(tf.matmul(L6, w6) + b6)
-hypothesis = tf.add(tf.matmul(L7, w7), b7)  # no need softmax along with 'with_logits'
+with tf.name_scope('model'):
+    dropout_rate = tf.placeholder('float')
+    L2 = tf.nn.dropout(tf.nn.relu(tf.matmul(x, w1) + b1), dropout_rate)
+    L3 = tf.nn.dropout(tf.nn.relu(tf.matmul(L2, w2) + b2), dropout_rate) 
+    hypothesis = tf.add(tf.matmul(L3, w3), b3)  # no need softmax along with 'with_logits'
 
-# minimize cross-entropy
-cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(hypothesis, y))
-optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
+# cost: minimize cross-entropy
+with tf.name_scope('cost') as scope:
+    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(hypothesis, y))
 
-# init. var
+# train: optimizer
+with tf.name_scope('train') as scope:
+    train_op = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
+
+# accuracy
+with tf.name_scope('accuracy') as scope:
+    correct_prediction = tf.equal(tf.argmax(hypothesis, 1), tf.argmax(y, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+
+# create summary for logging
+tf.scalar_summary('cost', cost)
+tf.scalar_summary('accuracy', accuracy)
+tf.histogram_summary('y', y)
+
+# merge all summary operator into single operator
+summary_op = tf.merge_all_summaries()
+
+# init. var operator
 init = tf.initialize_all_variables()
 
-# load data
-mnist = input_data.read_data_sets('MNIST_data/', one_hot=True)
 
 # launch the graph
 with tf.Session() as sess:
+    # run init var op
     sess.run(init)
+
+    # create saver
     saver = tf.train.Saver()
+
+    # create log writer
+    writer = tf.train.SummaryWriter('./summary/mnist_dnn', sess.graph)
 
     print 'Start training'
 
     # training cycle
     for epoch in range(training_epochs):
-        avg_cost = 0.
-        total_batch = int(mnist.train.num_examples/batch_size)
+
+        # number of batches in one epoch
+        batch_count = int(mnist.train.num_examples/batch_size)
 
         # loop over batch
-        for i in range(total_batch):
+        avg_cost = 0.
+        for i in range(batch_count):
+            # get a batch data
             batch_xs, batch_ys = mnist.train.next_batch(batch_size)
-            sess.run(optimizer, feed_dict={x: batch_xs, y: batch_ys, dropout_rate:0.5})
-            avg_cost += sess.run(cost, feed_dict={x: batch_xs, y: batch_ys, dropout_rate:1}) / total_batch
+
+            # do operator
+            _, summary, bcost = sess.run([train_op, summary_op, cost], feed_dict={x: batch_xs, y: batch_ys, dropout_rate:0.5})
+            
+            # write log
+            writer.add_summary(summary, training_epochs * batch_count + i)
+            
+            avg_cost += bcost / batch_count
 
         # display
         if epoch % display_step == 0:
@@ -86,9 +112,6 @@ with tf.Session() as sess:
     # plt.show()
 
     # Test model
-    correct_prediction = tf.equal(tf.argmax(hypothesis, 1), tf.argmax(y, 1))
-    # Calculate accuracy
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-    print ("Accuracy:", accuracy.eval({x: mnist.test.images, y: mnist.test.labels, dropout_rate:1}))
+    print 'Accuracy:', accuracy.eval({x: mnist.test.images, y: mnist.test.labels, dropout_rate:1})
 
-    saver.save(sess, '/Users/eddie/Documents/ws/ml/ckpts/mnist_dnn.ckpt')
+    saver.save(sess, 'ckpts/mnist_dnn.ckpt')
